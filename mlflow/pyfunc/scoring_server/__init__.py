@@ -248,29 +248,29 @@ def init(model: PyFuncModel):
                 mimetype="text/plain",
             )
         
-        format = parameter_values.get("format")
+        content_format = parameter_values.get("format")
 
         # Convert from CSV to pandas            
-        if mime_type == CONTENT_TYPE_CSV and not format:
+        if mime_type == CONTENT_TYPE_CSV and not content_format:
             data = flask.request.data.decode("utf-8")
             csv_input = StringIO(data)
             data = parse_csv_input(csv_input=csv_input)
-        elif mime_type == CONTENT_TYPE_JSON and not format:
+        elif mime_type == CONTENT_TYPE_JSON and not content_format:
             json_str = flask.request.data.decode("utf-8")
             data = infer_and_parse_json_input(json_str, input_schema)
-        elif mime_type == CONTENT_TYPE_JSON and format == CONTENT_TYPE_FORMAT_SPLIT_ORIENTED:
+        elif mime_type == CONTENT_TYPE_JSON and content_format == CONTENT_TYPE_FORMAT_SPLIT_ORIENTED:
             data = parse_json_input(
                 json_input=StringIO(flask.request.data.decode("utf-8")),
                 orient="split",
                 schema=input_schema,
             )
-        elif mime_type == CONTENT_TYPE_JSON and format == CONTENT_TYPE_FORMAT_RECORDS_ORIENTED:
+        elif mime_type == CONTENT_TYPE_JSON and content_format == CONTENT_TYPE_FORMAT_RECORDS_ORIENTED:
             data = parse_json_input(
                 json_input=StringIO(flask.request.data.decode("utf-8")),
                 orient="records",
                 schema=input_schema,
             )
-        elif mime_type == CONTENT_TYPE_JSON_SPLIT_NUMPY and not format:
+        elif mime_type == CONTENT_TYPE_JSON_SPLIT_NUMPY and not content_format:
             data = parse_split_oriented_json_input_to_numpy(flask.request.data.decode("utf-8"))
         else:
             return flask.Response(
