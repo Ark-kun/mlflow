@@ -101,6 +101,27 @@ public class ScoringServerTest {
   }
 
   @Test
+  public void testScoringServerRepondsToInvocationOfBadContentTypeCharsetWithUnsupportedMediaTypeCode()
+      throws IOException {
+    TestPredictor predictor = new TestPredictor(true);
+    ScoringServer server = new ScoringServer(predictor);
+    server.start();
+
+    String requestUrl = String.format("http://localhost:%d/invocations", server.getPort().get());
+    String badContentType = "application/json; charset=ansi'.";
+    HttpPost postRequest = new HttpPost(requestUrl);
+    postRequest.addHeader("Content-type", badContentType);
+    HttpEntity entity = new StringEntity("body");
+    postRequest.setEntity(entity);
+
+    HttpResponse response = httpClient.execute(postRequest);
+    Assert.assertEquals(
+        HttpServletResponse.SC_UNSUPPORTED_MEDIA_TYPE, response.getStatusLine().getStatusCode());
+
+    server.stop();
+  }
+
+  @Test
   public void testMultipleServersRunOnDifferentPortsSucceedfully() throws IOException {
     TestPredictor predictor = new TestPredictor(true);
 
@@ -137,7 +158,7 @@ public class ScoringServerTest {
 
     String requestUrl = String.format("http://localhost:%d/invocations", server.getPort().get());
     HttpPost postRequest = new HttpPost(requestUrl);
-    postRequest.addHeader("Content-type", "application/json");
+    postRequest.addHeader("Content-type", "application/json; charset=UTF-8");
     HttpEntity entity = new StringEntity("body");
     postRequest.setEntity(entity);
 
