@@ -2,6 +2,9 @@ package org.mlflow.sagemaker;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.stream.Collectors;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Optional;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -209,12 +212,31 @@ public class ScoringServer {
     private String evaluateRequest(String requestContent, String requestContentType)
         throws PredictorEvaluationException, InvalidRequestTypeException {
       PredictorDataWrapper predictorInput = null;
-      if (requestContentType.equals(REQUEST_CONTENT_TYPE_JSON)) {
+      String[] type_parts = requestContentType.split("\\s*;\\s*");
+      String mime_type = type_parts[0];
+      Map<String, String> parameter_values = Arrays.stream(type_parts)
+        .skip(1)
+        .map(s -> s.split("=", 2))
+        .collect(Collectors.toMap(
+            kv -> kv[0],  //key
+            kv -> kv[1]   //value
+        ));
+      
+      String charset = parameter_values.getOrDefault("charset", "utf-8").toLowerCase();
+      if (!charset.equals("utf-8")) {
+        logger.error(
+            String.format(
+                "Received a request with an unsupported content type charset: %s", charset));
+        throw new InvalidRequestTypeException(
+            "Invocations content must have content type with `utf-8` encoding");
+      }
+
+      if (mime_type.equals(REQUEST_CONTENT_TYPE_JSON)) {
         predictorInput =
             new PredictorDataWrapper(requestContent, PredictorDataWrapper.ContentType.Json);
         PredictorDataWrapper result = predictor.predict(predictorInput);
         return result.toJson();
-      } else if (requestContentType.equals(REQUEST_CONTENT_TYPE_CSV)) {
+      } else if (mime_type.equals(REQUEST_CONTENT_TYPE_CSV)) {
         predictorInput =
             new PredictorDataWrapper(requestContent, PredictorDataWrapper.ContentType.Csv);
         PredictorDataWrapper result = predictor.predict(predictorInput);
@@ -222,7 +244,7 @@ public class ScoringServer {
       } else {
         logger.error(
             String.format(
-                "Received a request with an unsupported content type: %s", requestContentType));
+                "Received a request with an unsupported content type: %s", mime_type));
         throw new InvalidRequestTypeException(
             "Invocations content must be of content type `application/json` or `text/csv`");
       }
